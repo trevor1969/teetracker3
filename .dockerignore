@@ -1,0 +1,48 @@
+# =============================================================================
+# .dockerignore – Dateien, die nicht in Docker-Images kopiert werden sollen
+# =============================================================================
+
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+pnpm-lock.yaml
+
+# Build-Outputs
+artifacts/*/dist
+artifacts/*/node_modules
+lib/*/dist
+lib/*/node_modules
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Environment
+.env
+.env.*
+
+# Test
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
