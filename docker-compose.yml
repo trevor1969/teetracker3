@@ -2,11 +2,12 @@ version: '3.8'
 
 # =============================================================================
 # Docker Compose für TeaTracker3 (Backend + Frontend + PostgreSQL)
+# Anpassung für Portainer mit Verzeichnis: /home/teetracker3
 # =============================================================================
-# Anleitung für Portainer:
-# 1. Lade diese Datei in Portainer hoch (Stacks > Add Stack)
-# 2. Passe die Umgebungsvariablen an (z. B. DATABASE_URL, POSTGRES_PASSWORD)
-# 3. Starte den Stack
+# In Portainer:
+# 1. Stack erstellen und diese Datei hochladen
+# 2. Arbeitsverzeichnis: /home/teetracker3
+# 3. POSTGRES_PASSWORD anpassen
 # =============================================================================
 
 services:
@@ -38,8 +39,8 @@ services:
   # ===========================================================================
   api:
     build:
-      context: .
-      dockerfile: artifacts/api-server/Dockerfile
+      context: /home/teetracker3
+      dockerfile: /home/teetracker3/artifacts/api-server/Dockerfile
     container_name: teetracker-api
     restart: unless-stopped
     environment:
@@ -65,18 +66,14 @@ services:
   # ===========================================================================
   frontend:
     build:
-      context: .
-      dockerfile: artifacts/tea-tracker/Dockerfile
-      args:
-        - NODE_ENV=production
+      context: /home/teetracker3
+      dockerfile: /home/teetracker3/artifacts/tea-tracker/Dockerfile
     container_name: teetracker-frontend
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 80
       BASE_PATH: "/"
-      # API-URL für das Frontend (wird zur Build-Zeit eingebettet)
-      # Falls du die API-URL dynamisch setzen möchtest, musst du die Vite-Konfiguration anpassen.
       VITE_API_URL: "http://localhost:5000"
     ports:
       - "8080:80"
