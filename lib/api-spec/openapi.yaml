@@ -1,0 +1,552 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Tea Tracker API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: tea-types
+    description: Tea type management
+  - name: brewing-methods
+    description: Brewing method management
+  - name: tea-sessions
+    description: Tea session logging
+  - name: stats
+    description: Statistics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /tea-types:
+    get:
+      operationId: listTeaTypes
+      tags: [tea-types]
+      summary: List all tea types
+      responses:
+        "200":
+          description: List of tea types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeaType"
+    post:
+      operationId: createTeaType
+      tags: [tea-types]
+      summary: Create a tea type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeaTypeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaType"
+
+  /tea-types/{id}:
+    get:
+      operationId: getTeaType
+      tags: [tea-types]
+      summary: Get a tea type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tea type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaType"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTeaType
+      tags: [tea-types]
+      summary: Update a tea type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeaTypeUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaType"
+    delete:
+      operationId: deleteTeaType
+      tags: [tea-types]
+      summary: Delete a tea type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /brewing-methods:
+    get:
+      operationId: listBrewingMethods
+      tags: [brewing-methods]
+      summary: List all brewing methods
+      responses:
+        "200":
+          description: List of brewing methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrewingMethod"
+    post:
+      operationId: createBrewingMethod
+      tags: [brewing-methods]
+      summary: Create a brewing method
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrewingMethodInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrewingMethod"
+
+  /brewing-methods/{id}:
+    get:
+      operationId: getBrewingMethod
+      tags: [brewing-methods]
+      summary: Get a brewing method
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Brewing method
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrewingMethod"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBrewingMethod
+      tags: [brewing-methods]
+      summary: Update a brewing method
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrewingMethodUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrewingMethod"
+    delete:
+      operationId: deleteBrewingMethod
+      tags: [brewing-methods]
+      summary: Delete a brewing method
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tea-sessions:
+    get:
+      operationId: listTeaSessions
+      tags: [tea-sessions]
+      summary: List tea sessions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tea sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeaSession"
+    post:
+      operationId: createTeaSession
+      tags: [tea-sessions]
+      summary: Log a tea session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeaSessionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaSession"
+
+  /tea-sessions/{id}:
+    get:
+      operationId: getTeaSession
+      tags: [tea-sessions]
+      summary: Get a tea session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tea session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaSession"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTeaSession
+      tags: [tea-sessions]
+      summary: Update a tea session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeaSessionUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeaSession"
+    delete:
+      operationId: deleteTeaSession
+      tags: [tea-sessions]
+      summary: Delete a tea session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /stats/overview:
+    get:
+      operationId: getStatsOverview
+      tags: [stats]
+      summary: Get consumption statistics overview
+      responses:
+        "200":
+          description: Statistics overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOverview"
+
+  /stats/by-tea:
+    get:
+      operationId: getStatsByTea
+      tags: [stats]
+      summary: Get statistics grouped by tea type
+      responses:
+        "200":
+          description: Stats per tea type
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeaTypeStat"
+
+  /stats/daily:
+    get:
+      operationId: getStatsDaily
+      tags: [stats]
+      summary: Get daily session counts for the last 30 days
+      responses:
+        "200":
+          description: Daily stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyStat"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    TeaType:
+      type: object
+      required: [id, name, category, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    TeaTypeInput:
+      type: object
+      required: [name, category]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+
+    TeaTypeUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+
+    BrewingMethod:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        temperatureCelsius:
+          type: ["integer", "null"]
+        steepTimeSeconds:
+          type: ["integer", "null"]
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    BrewingMethodInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        temperatureCelsius:
+          type: integer
+        steepTimeSeconds:
+          type: integer
+        description:
+          type: string
+
+    BrewingMethodUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        temperatureCelsius:
+          type: integer
+        steepTimeSeconds:
+          type: integer
+        description:
+          type: string
+
+    TeaSession:
+      type: object
+      required: [id, cups, loggedAt, createdAt]
+      properties:
+        id:
+          type: integer
+        teaTypeId:
+          type: ["integer", "null"]
+        brewingMethodId:
+          type: ["integer", "null"]
+        cups:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        loggedAt:
+          type: string
+        createdAt:
+          type: string
+        teaType:
+          $ref: "#/components/schemas/TeaType"
+        brewingMethod:
+          $ref: "#/components/schemas/BrewingMethod"
+
+    TeaSessionInput:
+      type: object
+      required: [cups]
+      properties:
+        teaTypeId:
+          type: integer
+        brewingMethodId:
+          type: integer
+        cups:
+          type: integer
+          minimum: 1
+        notes:
+          type: string
+        loggedAt:
+          type: string
+
+    TeaSessionUpdate:
+      type: object
+      properties:
+        teaTypeId:
+          type: integer
+        brewingMethodId:
+          type: integer
+        cups:
+          type: integer
+          minimum: 1
+        notes:
+          type: string
+        loggedAt:
+          type: string
+
+    StatsOverview:
+      type: object
+      required: [today, thisWeek, thisMonth, allTime, totalCupsToday, totalCupsWeek, totalCupsMonth, totalCupsAllTime]
+      properties:
+        today:
+          type: integer
+        thisWeek:
+          type: integer
+        thisMonth:
+          type: integer
+        allTime:
+          type: integer
+        totalCupsToday:
+          type: integer
+        totalCupsWeek:
+          type: integer
+        totalCupsMonth:
+          type: integer
+        totalCupsAllTime:
+          type: integer
+
+    TeaTypeStat:
+      type: object
+      required: [teaTypeId, teaTypeName, sessionCount, totalCups]
+      properties:
+        teaTypeId:
+          type: integer
+        teaTypeName:
+          type: string
+        category:
+          type: string
+        color:
+          type: ["string", "null"]
+        sessionCount:
+          type: integer
+        totalCups:
+          type: integer
+
+    DailyStat:
+      type: object
+      required: [date, sessionCount, totalCups]
+      properties:
+        date:
+          type: string
+        sessionCount:
+          type: integer
+        totalCups:
+          type: integer
