@@ -1,4 +1,93 @@
+# Production-Stage: Nur notwendige Dateien kopieren
 # =============================================================================
+
+FROM base AS production
+
+
+# Arbeitsverzeichnis
+
+WORKDIR /app
+
+
+# pnpm für Production (falls nötig)
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+
+# Abhängigkeiten für Production installieren (ohne devDependencies)
+
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+
+RUN pnpm install --prod --frozen-lockfile
+
+
+# Gebündelten Code aus dem Builder kopieren
+
+COPY --from=builder /app/dist ./dist
+
+COPY --from=builder /app/node_modules ./node_modules
+
+
+# Umgebungsvariablen (werden zur Laufzeit überschrieben)
+
+ENV NODE_ENV=production
+
+ENV PORT=5000
+
+
+# Standardmäßig auf Port 5000 lauschen
+
+EXPOSE 5000
+=======
+# =============================================================================
+# Production-Stage: Nur notwendige Dateien kopieren
+# =============================================================================
+
+FROM base AS production
+
+
+# Arbeitsverzeichnis
+
+WORKDIR /app
+
+
+# pnpm für Production (falls nötig)
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+
+# Abhängigkeiten für Production installieren (ohne devDependencies)
+
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+
+RUN pnpm install --prod --frozen-lockfile
+
+
+# Gebündelten Code aus dem Builder kopieren
+
+COPY --from=builder /app/dist ./dist
+
+COPY --from=builder /app/node_modules ./node_modules
+
+
+# Verzeichnis für hochgeladene Dateien erstellen
+RUN mkdir -p /opt/teetracker3/uploads && \
+    chown -R node:node /opt/teetracker3 && \
+    chmod -R 755 /opt/teetracker3
+
+# Arbeitsverzeichnis für Uploads setzen
+ENV UPLOAD_DIR="/opt/teetracker3/uploads"
+
+# Umgebungsvariablen (werden zur Laufzeit überschrieben)
+
+ENV NODE_ENV=production
+
+ENV PORT=5000
+
+
+# Standardmäßig auf Port 5000 lauschen
+
+EXPOSE 5000=============================================================================
 
 # Dockerfile für den API-Server (Express.js + TypeScript)
 
