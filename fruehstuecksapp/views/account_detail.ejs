@@ -37,6 +37,7 @@
                 <div class="actions">
                     <a href="/accounts/<%= account.id %>/deposit" class="btn">Geld einzahlen</a>
                     <a href="/accounts/<%= account.id %>/withdraw" class="btn">Betrag abbuchen</a>
+                    <a href="/accounts/<%= account.id %>/pdf" class="btn">PDF Export</a>
                     <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
                         <a href="/accounts/<%= account.id %>/edit" class="btn secondary">Konto bearbeiten</a>
                     <% } %>

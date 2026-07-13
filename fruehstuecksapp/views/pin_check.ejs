@@ -16,7 +16,7 @@
             <div class="pin-check-container">
                 <% if (typeof success === 'undefined' || !success) { %>
                     <h2>Kontostand abfragen</h2>
-                    <p>Bitte geben Sie Ihre 4-stellige PIN ein, um Ihren Kontostand abzufragen.</p>
+                    <p>Bitte geben Sie Ihre 4-stellige PIN ein, um Ihren Kontostand und die letzten Buchungen abzufragen.</p>
                     
                     <% if (typeof error !== 'undefined' && error) { %>
                         <div class="error"><%= error %></div>
@@ -34,12 +34,50 @@
                     <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
                 <% } else { %>
                     <h2>Kontostand für <%= typeof account !== 'undefined' ? account.name : 'Unbekannt' %></h2>
+                    
                     <div class="balance-display">
                         <p>Ihr aktueller Kontostand beträgt:</p>
                         <p class="balance-large"><%= typeof account !== 'undefined' ? account.balance.toFixed(2) : '0.00' %> €</p>
                     </div>
-                    <p><a href="/pin-check" class="btn">Neue Abfrage</a></p>
-                    <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
+                    
+                    <% if (typeof transactions !== 'undefined' && transactions.length > 0) { %>
+                        <h3>Letzte Buchungen:</h3>
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Typ</th>
+                                    <th>Betrag</th>
+                                    <th>Beschreibung</th>
+                                    <th>Artikel</th>
+                                    <th>Durchgeführt von</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% transactions.forEach(function(transaction) { %>
+                                    <tr>
+                                        <td><%= new Date(transaction.created_at).toLocaleString('de-DE') %></td>
+                                        <td class="type-<%= transaction.type %>">
+                                            <%= transaction.type === 'deposit' ? 'Einzahlung' : 'Abbuchung' %>
+                                        </td>
+                                        <td class="amount-<%= transaction.type %>">
+                                            <%= transaction.amount.toFixed(2) %> €
+                                        </td>
+                                        <td><%= transaction.description %></td>
+                                        <td><%= transaction.item_name || '-' %></td>
+                                        <td><%= transaction.created_by_name || 'System' %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p>Keine Buchungen in den letzten 10 Transaktionen.</p>
+                    <% } %>
+                    
+                    <div class="actions" style="margin-top: 20px;">
+                        <a href="/pin-check" class="btn">Neue Abfrage</a>
+                        <a href="/login" class="btn secondary">Zur Mitarbeiter-Anmeldung</a>
+                    </div>
                 <% } %>
             </div>
         </main>
