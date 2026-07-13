@@ -1,0 +1,39 @@
+<%- include('layout', { title: 'Konten' }) %>
+
+<% override body %>
+    <h2>Kontenverwaltung</h2>
+    
+    <div class="actions">
+        <a href="/accounts/new" class="btn">Neues Konto anlegen</a>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Kontostand</th>
+                <th>Erstellt am</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% accounts.forEach(account => { %>
+                <tr>
+                    <td><%= account.name %></td>
+                    <td class="balance"><%= account.balance.toFixed(2) %> €</td>
+                    <td><%= new Date(account.created_at).toLocaleDateString('de-DE') %></td>
+                    <td>
+                        <a href="/accounts/<%= account.id %>">Details</a>
+                        | <a href="/accounts/<%= account.id %>/deposit">Einzahlen</a>
+                        | <a href="/accounts/<%= account.id %>/withdraw">Abbuchen</a>
+                        <% if (isAdmin) { %>
+                            | <a href="/accounts/<%= account.id %>/edit">Bearbeiten</a>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+    
+    <p>Gesamt: <%= accounts.length %> Konten</p>
+<% end %>

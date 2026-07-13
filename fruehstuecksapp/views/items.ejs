@@ -1,0 +1,39 @@
+<%- include('layout', { title: 'Artikel' }) %>
+
+<% override body %>
+    <h2>Artikelverwaltung</h2>
+    
+    <div class="actions">
+        <a href="/items/new" class="btn">Neuen Artikel anlegen</a>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Preis</th>
+                <th>Beschreibung</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach(item => { %>
+                <tr>
+                    <td><%= item.name %></td>
+                    <td><%= item.price.toFixed(2) %> €</td>
+                    <td><%= item.description || '-' %></td>
+                    <td>
+                        <a href="/items/<%= item.id %>/edit">Bearbeiten</a>
+                        | 
+                        <form action="/items/<%= item.id %>/delete" method="POST" style="display: inline;">
+                            <button type="submit" class="btn-danger" 
+                                    onclick="return confirm('Artikel wirklich löschen?')">Löschen</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+    
+    <p>Gesamt: <%= items.length %> Artikel</p>
+<% end %>

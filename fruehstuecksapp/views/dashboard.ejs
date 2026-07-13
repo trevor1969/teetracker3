@@ -1,0 +1,55 @@
+<%- include('layout', { title: 'Dashboard' }) %>
+
+<% override body %>
+    <h2>Dashboard</h2>
+    
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3>Konten</h3>
+            <p class="stat-value"><%= stats.count %></p>
+        </div>
+        <div class="stat-card">
+            <h3>Gesamtguthaben</h3>
+            <p class="stat-value"><%= (stats.total_balance || 0).toFixed(2) %> €</p>
+        </div>
+    </div>
+    
+    <h3>Letzte Transaktionen</h3>
+    <table class="transaction-table">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Konto</th>
+                <th>Typ</th>
+                <th>Betrag</th>
+                <th>Beschreibung</th>
+                <th>Artikel</th>
+                <th>Durchgeführt von</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% transactions.forEach(transaction => { %>
+                <tr>
+                    <td><%= new Date(transaction.created_at).toLocaleString('de-DE') %></td>
+                    <td><%= transaction.account_name %></td>
+                    <td class="type-<%= transaction.type %>">
+                        <%= transaction.type === 'deposit' ? 'Einzahlung' : 'Abbuchung' %>
+                    </td>
+                    <td class="amount-<%= transaction.type %>">
+                        <%= transaction.amount.toFixed(2) %> €
+                    </td>
+                    <td><%= transaction.description %></td>
+                    <td><%= transaction.item_name || '-' %></td>
+                    <td><%= transaction.created_by_name || 'System' %></td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+    
+    <div class="actions">
+        <a href="/accounts/new" class="btn">Neues Konto anlegen</a>
+        <% if (isAdmin) { %>
+            <a href="/items/new" class="btn">Neuen Artikel anlegen</a>
+        <% } %>
+    </div>
+<% end %>

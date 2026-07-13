@@ -1,0 +1,23 @@
+<%- include('layout', { title: 'Neues Konto anlegen' }) %>
+
+<% override body %>
+    <h2>Neues Konto anlegen</h2>
+    
+    <form action="/accounts" method="POST">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="pin">PIN (4-stellig):</label>
+            <input type="password" id="pin" name="pin" required pattern="\d{4}" 
+                   title="Bitte genau 4 Ziffern eingeben" maxlength="4">
+        </div>
+        <div class="form-group">
+            <label for="initialBalance">Anfangsguthaben (€):</label>
+            <input type="number" id="initialBalance" name="initialBalance" step="0.01" min="0" value="0.00">
+        </div>
+        <button type="submit" class="btn">Konto anlegen</button>
+        <a href="/accounts" class="btn secondary">Abbrechen</a>
+    </form>
+<% end %>
