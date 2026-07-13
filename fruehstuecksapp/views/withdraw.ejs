@@ -1,75 +1,113 @@
-<%- include('layout', { title: 'Betrag abbuchen - ' + account.name }) %>
-
-<% override body %>
-    <h2>Betrag abbuchen für: <%= account.name %></h2>
-    
-    <p>Aktueller Kontostand: <strong><%= account.balance.toFixed(2) %> €</strong></p>
-    
-    <% if (error) { %>
-        <div class="error">
-            <% if (error === 'insufficient_funds') { %>
-                Nicht genügend Guthaben auf dem Konto!
-            <% else if (error === 'invalid_amount') { %>
-                Bitte einen gültigen Betrag eingeben!
-            <% else if (error === 'invalid_item') { %>
-                Ungültiger Artikel ausgewählt!
-            <% else { %>
-                <%= error %>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betrag abbuchen - <%= typeof account !== 'undefined' ? account.name : 'Frühstückskonten' %></title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <nav>
+                    <span>Angemeldet als: <strong><%= user.username %></strong> (<%= user.role %>) | 
+                    <a href="/dashboard">Dashboard</a> |
+                    <a href="/accounts">Konten</a>
+                    <% if (user.role === 'admin') { %>
+                        | <a href="/items">Artikel</a>
+                        | <a href="/users">Benutzer</a>
+                    <% } %>
+                    | <a href="/logout">Abmelden</a>
+                    </span>
+                </nav>
             <% } %>
-        </div>
-    <% } %>
-    
-    <form action="/accounts/<%= account.id %>/withdraw" method="POST">
-        <div class="form-section">
-            <h3>Option 1: Artikel auswählen</h3>
-            <div class="form-group">
-                <label for="itemId">Artikel:</label>
-                <select id="itemId" name="itemId">
-                    <option value="">-- Artikel auswählen --</option>
-                    <% items.forEach(item => { %>
-                        <option value="<%= item.id %>">
-                            <%= item.name %> (<%= item.price.toFixed(2) %> €)
-                            <% if (item.description) { %>
-                                - <%= item.description %>
-                            <% } %>
-                        </option>
-                    <% }); %>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="description">Bemerkung (optional):</label>
-                <input type="text" id="description" name="description">
-            </div>
-        </div>
+        </header>
         
-        <div class="form-section">
-            <h3>Option 2: Manueller Betrag</h3>
-            <div class="form-group">
-                <label for="customAmount">Betrag (€):</label>
-                <input type="number" id="customAmount" name="customAmount" step="0.01" min="0.01">
-            </div>
-            <div class="form-group">
-                <label for="description2">Beschreibung (optional):</label>
-                <input type="text" id="description2" name="description">
-            </div>
-        </div>
+        <main>
+            <% if (typeof account !== 'undefined' && account) { %>
+                <h2>Betrag abbuchen für: <%= account.name %></h2>
+                
+                <p>Aktueller Kontostand: <strong><%= account.balance.toFixed(2) %> €</strong></p>
+                
+                <% if (typeof error !== 'undefined' && error) { %>
+                    <div class="error">
+                        <% if (error === 'insufficient_funds') { %>
+                            Nicht genügend Guthaben auf dem Konto!
+                        <% } else if (error === 'invalid_amount') { %>
+                            Bitte einen gültigen Betrag eingeben!
+                        <% } else if (error === 'invalid_item') { %>
+                            Ungültiger Artikel ausgewählt!
+                        <% } else { %>
+                            <%= error %>
+                        <% } %>
+                    </div>
+                <% } %>
+                
+                <form action="/accounts/<%= account.id %>/withdraw" method="POST">
+                    <div class="form-section">
+                        <h3>Option 1: Artikel auswählen</h3>
+                        <div class="form-group">
+                            <label for="itemId">Artikel:</label>
+                            <select id="itemId" name="itemId">
+                                <option value="">-- Artikel auswählen --</option>
+                                <% if (typeof items !== 'undefined' && items.length > 0) { %>
+                                    <% items.forEach(function(item) { %>
+                                        <option value="<%= item.id %>">
+                                            <%= item.name %> (<%= item.price.toFixed(2) %> €)
+                                            <% if (item.description) { %>
+                                                - <%= item.description %>
+                                            <% } %>
+                                        </option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Bemerkung (optional):</label>
+                            <input type="text" id="description" name="description">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>Option 2: Manueller Betrag</h3>
+                        <div class="form-group">
+                            <label for="customAmount">Betrag (€):</label>
+                            <input type="number" id="customAmount" name="customAmount" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="description2">Beschreibung (optional):</label>
+                            <input type="text" id="description2" name="description">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">Abbuchen</button>
+                    <a href="/accounts/<%= account.id %>", class="btn secondary">Abbrechen</a>
+                </form>
+                
+                <script>
+                    // Ensure only one option is used at a time
+                    document.querySelector('select[name="itemId"]').addEventListener('change', function() {
+                        if (this.value) {
+                            document.getElementById('customAmount').value = '';
+                        }
+                    });
+                    
+                    document.getElementById('customAmount').addEventListener('input', function() {
+                        if (this.value) {
+                            document.querySelector('select[name="itemId"]').value = '';
+                        }
+                    });
+                </script>
+            <% } else { %>
+                <p>Konto nicht gefunden.</p>
+            <% } %>
+        </main>
         
-        <button type="submit" class="btn">Abbuchen</button>
-        <a href="/accounts/<%= account.id %>", class="btn secondary">Abbrechen</a>
-    </form>
-    
-    <script>
-        // Ensure only one option is used at a time
-        document.querySelector('select[name="itemId"]').addEventListener('change', function() {
-            if (this.value) {
-                document.getElementById('customAmount').value = '';
-            }
-        });
-        
-        document.getElementById('customAmount').addEventListener('input', function() {
-            if (this.value) {
-                document.querySelector('select[name="itemId"]').value = '';
-            }
-        });
-    </script>
-<% end %>
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
+    </div>
+</body>
+</html>

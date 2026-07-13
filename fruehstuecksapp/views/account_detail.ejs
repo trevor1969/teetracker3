@@ -1,53 +1,91 @@
-<%- include('layout', { title: 'Kontodetails - ' + account.name }) %>
-
-<% override body %>
-    <h2>Kontodetails: <%= account.name %></h2>
-    
-    <div class="account-info">
-        <p><strong>Kontostand:</strong> <span class="balance"><%= account.balance.toFixed(2) %> €</span></p>
-        <p><strong>Erstellt am:</strong> <%= new Date(account.created_at).toLocaleString('de-DE') %></p>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontodetails - <%= typeof account !== 'undefined' ? account.name : 'Frühstückskonten' %></title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <nav>
+                    <span>Angemeldet als: <strong><%= user.username %></strong> (<%= user.role %>) | 
+                    <a href="/dashboard">Dashboard</a> |
+                    <a href="/accounts">Konten</a>
+                    <% if (user.role === 'admin') { %>
+                        | <a href="/items">Artikel</a>
+                        | <a href="/users">Benutzer</a>
+                    <% } %>
+                    | <a href="/logout">Abmelden</a>
+                    </span>
+                </nav>
+            <% } %>
+        </header>
+        
+        <main>
+            <% if (typeof account !== 'undefined' && account) { %>
+                <h2>Kontodetails: <%= account.name %></h2>
+                
+                <div class="account-info">
+                    <p><strong>Kontostand:</strong> <span class="balance"><%= account.balance.toFixed(2) %> €</span></p>
+                    <p><strong>Erstellt am:</strong> <%= new Date(account.created_at).toLocaleString('de-DE') %></p>
+                </div>
+                
+                <div class="actions">
+                    <a href="/accounts/<%= account.id %>/deposit" class="btn">Geld einzahlen</a>
+                    <a href="/accounts/<%= account.id %>/withdraw" class="btn">Betrag abbuchen</a>
+                    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+                        <a href="/accounts/<%= account.id %>/edit" class="btn secondary">Konto bearbeiten</a>
+                    <% } %>
+                    <a href="/accounts" class="btn secondary">Zurück zur Liste</a>
+                </div>
+                
+                <h3>Transaktionshistorie</h3>
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Typ</th>
+                            <th>Betrag</th>
+                            <th>Beschreibung</th>
+                            <th>Artikel</th>
+                            <th>Durchgeführt von</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (typeof transactions !== 'undefined' && transactions.length > 0) { %>
+                            <% transactions.forEach(function(transaction) { %>
+                                <tr>
+                                    <td><%= new Date(transaction.created_at).toLocaleString('de-DE') %></td>
+                                    <td class="type-<%= transaction.type %>">
+                                        <%= transaction.type === 'deposit' ? 'Einzahlung' : 'Abbuchung' %>
+                                    </td>
+                                    <td class="amount-<%= transaction.type %>">
+                                        <%= transaction.amount.toFixed(2) %> €
+                                    </td>
+                                    <td><%= transaction.description %></td>
+                                    <td><%= transaction.item_name || '-' %></td>
+                                    <td><%= transaction.created_by_name || 'System' %></td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="6">Keine Transaktionen für dieses Konto.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <p>Konto nicht gefunden.</p>
+            <% } %>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
     </div>
-    
-    <div class="actions">
-        <a href="/accounts/<%= account.id %>/deposit" class="btn">Geld einzahlen</a>
-        <a href="/accounts/<%= account.id %>/withdraw" class="btn">Betrag abbuchen</a>
-        <% if (isAdmin) { %>
-            <a href="/accounts/<%= account.id %>/edit" class="btn secondary">Konto bearbeiten</a>
-        <% } %>
-        <a href="/accounts" class="btn secondary">Zurück zur Liste</a>
-    </div>
-    
-    <h3>Transaktionshistorie</h3>
-    <table class="transaction-table">
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Typ</th>
-                <th>Betrag</th>
-                <th>Beschreibung</th>
-                <th>Artikel</th>
-                <th>Durchgeführt von</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% transactions.forEach(transaction => { %>
-                <tr>
-                    <td><%= new Date(transaction.created_at).toLocaleString('de-DE') %></td>
-                    <td class="type-<%= transaction.type %>">
-                        <%= transaction.type === 'deposit' ? 'Einzahlung' : 'Abbuchung' %>
-                    </td>
-                    <td class="amount-<%= transaction.type %>">
-                        <%= transaction.amount.toFixed(2) %> €
-                    </td>
-                    <td><%= transaction.description %></td>
-                    <td><%= transaction.item_name || '-' %></td>
-                    <td><%= transaction.created_by_name || 'System' %></td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
-    
-    <% if (transactions.length === 0) { %>
-        <p>Keine Transaktionen für dieses Konto.</p>
-    <% } %>
-<% end %>
+</body>
+</html>

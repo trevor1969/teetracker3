@@ -1,29 +1,61 @@
-<%- include('layout', { title: 'Neuen Artikel anlegen' }) %>
-
-<% override body %>
-    <h2>Neuen Artikel anlegen</h2>
-    
-    <form action="/items" method="POST">
-        <div class="form-group">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required autofocus 
-                   value="<%= locals.name || '' %>">
-        </div>
-        <div class="form-group">
-            <label for="price">Preis (€):</label>
-            <input type="number" id="price" name="price" step="0.01" min="0.01" required
-                   value="<%= locals.price || '' %>">
-        </div>
-        <div class="form-group">
-            <label for="description">Beschreibung (optional):</label>
-            <input type="text" id="description" name="description"
-                   value="<%= locals.description || '' %>">
-        </div>
-        <button type="submit" class="btn">Artikel anlegen</button>
-        <a href="/items" class="btn secondary">Abbrechen</a>
-    </form>
-    
-    <% if (error) { %>
-        <div class="error"><%= error %></div>
-    <% } %>
-<% end %>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuen Artikel anlegen - Frühstückskonten Verwaltung</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <nav>
+                    <span>Angemeldet als: <strong><%= user.username %></strong> (<%= user.role %>) | 
+                    <a href="/dashboard">Dashboard</a> |
+                    <a href="/accounts">Konten</a>
+                    <% if (user.role === 'admin') { %>
+                        | <a href="/items">Artikel</a>
+                        | <a href="/users">Benutzer</a>
+                    <% } %>
+                    | <a href="/logout">Abmelden</a>
+                    </span>
+                </nav>
+            <% } %>
+        </header>
+        
+        <main>
+            <h2>Neuen Artikel anlegen</h2>
+            
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error"><%= error %></div>
+            <% } %>
+            
+            <form action="/items" method="POST">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required autofocus 
+                           value="<%= typeof name !== 'undefined' ? name : '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="price">Preis (€):</label>
+                    <input type="number" id="price" name="price" step="0.01" min="0.01" required
+                           value="<%= typeof price !== 'undefined' ? price : '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="description">Beschreibung (optional):</label>
+                    <input type="text" id="description" name="description"
+                           value="<%= typeof description !== 'undefined' ? description : '' %>">
+                </div>
+                <button type="submit" class="btn">Artikel anlegen</button>
+                <a href="/items" class="btn secondary">Abbrechen</a>
+            </form>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
+    </div>
+</body>
+</html>

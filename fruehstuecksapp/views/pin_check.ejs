@@ -1,29 +1,52 @@
-<%- include('layout', { title: 'Kontostand abfragen' }) %>
-
-<% override body %>
-    <div class="pin-check-container">
-        <% if (!success) { %>
-            <h2>Kontostand abfragen</h2>
-            <p>Bitte geben Sie Ihre 4-stellige PIN ein, um Ihren Kontostand abzufragen.</p>
-            
-            <form action="/pin-check" method="POST">
-                <div class="form-group">
-                    <label for="pin">PIN:</label>
-                    <input type="password" id="pin" name="pin" required autofocus 
-                           pattern="\d{4}" title="Bitte genau 4 Ziffern eingeben" maxlength="4">
-                </div>
-                <button type="submit" class="btn">Kontostand abfragen</button>
-            </form>
-            
-            <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
-        <% } else { %>
-            <h2>Kontostand für <%= account.name %></h2>
-            <div class="balance-display">
-                <p>Ihr aktueller Kontostand beträgt:</p>
-                <p class="balance-large"><%= account.balance.toFixed(2) %> €</p>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontostand abfragen - Frühstückskonten Verwaltung</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+        </header>
+        
+        <main>
+            <div class="pin-check-container">
+                <% if (typeof success === 'undefined' || !success) { %>
+                    <h2>Kontostand abfragen</h2>
+                    <p>Bitte geben Sie Ihre 4-stellige PIN ein, um Ihren Kontostand abzufragen.</p>
+                    
+                    <% if (typeof error !== 'undefined' && error) { %>
+                        <div class="error"><%= error %></div>
+                    <% } %>
+                    
+                    <form action="/pin-check" method="POST">
+                        <div class="form-group">
+                            <label for="pin">PIN:</label>
+                            <input type="password" id="pin" name="pin" required autofocus 
+                                   pattern="\d{4}" title="Bitte genau 4 Ziffern eingeben" maxlength="4">
+                        </div>
+                        <button type="submit" class="btn">Kontostand abfragen</button>
+                    </form>
+                    
+                    <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
+                <% } else { %>
+                    <h2>Kontostand für <%= typeof account !== 'undefined' ? account.name : 'Unbekannt' %></h2>
+                    <div class="balance-display">
+                        <p>Ihr aktueller Kontostand beträgt:</p>
+                        <p class="balance-large"><%= typeof account !== 'undefined' ? account.balance.toFixed(2) : '0.00' %> €</p>
+                    </div>
+                    <p><a href="/pin-check" class="btn">Neue Abfrage</a></p>
+                    <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
+                <% } %>
             </div>
-            <p><a href="/pin-check" class="btn">Neue Abfrage</a></p>
-            <p><a href="/login">Zur Mitarbeiter-Anmeldung</a></p>
-        <% } %>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
     </div>
-<% end %>
+</body>
+</html>
