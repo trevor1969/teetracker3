@@ -1,0 +1,26 @@
+<%- include('layout', { title: 'Anmeldung' }) %>
+
+<% override body %>
+    <div class="login-container">
+        <h2>Anmeldung</h2>
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label for="username">Benutzername:</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Passwort:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn">Anmelden</button>
+        </form>
+        <p class="login-hint">
+            <strong>Standard-Anmeldung:</strong><br>
+            Benutzername: admin<br>
+            Passwort: admin123
+        </p>
+        <p class="pin-check-link">
+            <a href="/pin-check">Kontostand mit PIN abfragen</a>
+        </p>
+    </div>
+<% end %>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%- title || 'Frühstückskonten Verwaltung' %></title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+            <% if (user) { %>
+                <nav>
+                    <span>Angemeldet als: <strong><%= user.username %></strong> (<%= user.role %>) | 
+                    <a href="/dashboard">Dashboard</a> |
+                    <a href="/accounts">Konten</a>
+                    <% if (user.role === 'admin') { %>
+                        | <a href="/items">Artikel</a>
+                        | <a href="/users">Benutzer</a>
+                    <% } %>
+                    | <a href="/logout">Abmelden</a>
+                    </span>
+                </nav>
+            <% } %>
+        </header>
+        
+        <main>
+            <% if (error) { %>
+                <div class="error"><%= error %></div>
+            <% } %>
+            <% if (success) { %>
+                <div class="success"><%= success %></div>
+            <% } %>
+            <%- body %>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
+    </div>
+</body>
+</html>
