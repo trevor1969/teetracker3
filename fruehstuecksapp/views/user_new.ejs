@@ -1,30 +1,62 @@
-<%- include('layout', { title: 'Neuen Benutzer anlegen' }) %>
-
-<% override body %>
-    <h2>Neuen Benutzer anlegen</h2>
-    
-    <form action="/users" method="POST">
-        <div class="form-group">
-            <label for="username">Benutzername:</label>
-            <input type="text" id="username" name="username" required autofocus
-                   value="<%= locals.username || '' %>">
-        </div>
-        <div class="form-group">
-            <label for="password">Passwort:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <div class="form-group">
-            <label for="role">Rolle:</label>
-            <select id="role" name="role" required>
-                <option value="employee" <%= locals.role === 'employee' ? 'selected' : '' %>>Mitarbeiter</option>
-                <option value="admin" <%= locals.role === 'admin' ? 'selected' : '' %>>Administrator</option>
-            </select>
-        </div>
-        <button type="submit" class="btn">Benutzer anlegen</button>
-        <a href="/users" class="btn secondary">Abbrechen</a>
-    </form>
-    
-    <% if (error) { %>
-        <div class="error"><%= error %></div>
-    <% } %>
-<% end %>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuen Benutzer anlegen - Frühstückskonten Verwaltung</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frühstückskonten Verwaltung</h1>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <nav>
+                    <span>Angemeldet als: <strong><%= user.username %></strong> (<%= user.role %>) | 
+                    <a href="/dashboard">Dashboard</a> |
+                    <a href="/accounts">Konten</a>
+                    <% if (user.role === 'admin') { %>
+                        | <a href="/items">Artikel</a>
+                        | <a href="/users">Benutzer</a>
+                    <% } %>
+                    | <a href="/logout">Abmelden</a>
+                    </span>
+                </nav>
+            <% } %>
+        </header>
+        
+        <main>
+            <h2>Neuen Benutzer anlegen</h2>
+            
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error"><%= error %></div>
+            <% } %>
+            
+            <form action="/users" method="POST">
+                <div class="form-group">
+                    <label for="username">Benutzername:</label>
+                    <input type="text" id="username" name="username" required autofocus
+                           value="<%= typeof username !== 'undefined' ? username : '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="password">Passwort:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Rolle:</label>
+                    <select id="role" name="role" required>
+                        <option value="employee" <%= typeof role !== 'undefined' && role === 'employee' ? 'selected' : '' %>>Mitarbeiter</option>
+                        <option value="admin" <%= typeof role !== 'undefined' && role === 'admin' ? 'selected' : '' %>>Administrator</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Benutzer anlegen</button>
+                <a href="/users" class="btn secondary">Abbrechen</a>
+            </form>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 Frühstückskonten Verwaltung</p>
+        </footer>
+    </div>
+</body>
+</html>

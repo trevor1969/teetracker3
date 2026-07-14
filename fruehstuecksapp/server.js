@@ -3,6 +3,8 @@ const session = require('express-session');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -150,6 +152,17 @@ function requireAdmin(req, res, next) {
     res.status(403).send('Zugriff verweigert: Nur für Administratoren');
 }
 
+// Helper function to get account by PIN
+function getAccountByPin(pin, callback) {
+    db.all("SELECT * FROM accounts", (err, accounts) => {
+        if (err) {
+            return callback(err, null);
+        }
+        const matchingAccount = accounts.find(acc => bcrypt.compareSync(pin, acc.pin));
+        callback(null, matchingAccount);
+    });
+}
+
 // Routes
 app.get('/', (req, res) => {
     if (req.session.userId) {
@@ -161,14 +174,14 @@ app.get('/', (req, res) => {
 
 // Login routes
 app.get('/login', (req, res) => {
-    res.render('login', { error: null });
+    res.render('login', { error: null, user: null });
 });
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
         if (err || !user) {
-            return res.render('login', { error: 'Benutzername oder Passwort falsch' });
+            return res.render('login', { error: 'Benutzername oder Passwort falsch', user: null });
         }
         if (bcrypt.compareSync(password, user.password)) {
             req.session.userId = user.id;
@@ -176,7 +189,7 @@ app.post('/login', (req, res) => {
             req.session.role = user.role;
             res.redirect('/dashboard');
         } else {
-            res.render('login', { error: 'Benutzername oder Passwort falsch' });
+            res.render('login', { error: 'Benutzername oder Passwort falsch', user: null });
         }
     });
 });
@@ -209,9 +222,9 @@ app.get('/dashboard', requireAuth, (req, res) => {
         db.get("SELECT COUNT(*) as count, SUM(balance) as total_balance FROM accounts", (err, stats) => {
             res.render('dashboard', {
                 user: req.user,
-                isAdmin,
-                transactions,
-                stats
+                isAdmin: isAdmin,
+                transactions: transactions,
+                stats: stats
             });
         });
     });
@@ -226,14 +239,14 @@ app.get('/accounts', requireAuth, (req, res) => {
         }
         res.render('accounts', {
             user: req.user,
-            accounts,
+            accounts: accounts,
             isAdmin: req.user.role === 'admin'
         });
     });
 });
 
 app.get('/accounts/new', requireAuth, (req, res) => {
-    res.render('account_new', { user: req.user });
+    res.render('account_new', { user: req.user, error: null });
 });
 
 app.post('/accounts', requireAuth, (req, res) => {
@@ -287,8 +300,8 @@ app.get('/accounts/:id', requireAuth, (req, res) => {
             
             res.render('account_detail', {
                 user: req.user,
-                account,
-                transactions,
+                account: account,
+                transactions: transactions,
                 isAdmin: req.user.role === 'admin'
             });
         });
@@ -302,7 +315,7 @@ app.get('/accounts/:id/edit', requireAuth, (req, res) => {
         if (err || !account) {
             return res.status(404).send('Konto nicht gefunden');
         }
-        res.render('account_edit', { user: req.user, account });
+        res.render('account_edit', { user: req.user, account: account, error: null });
     });
 });
 
@@ -331,6 +344,108 @@ app.post('/accounts/:id', requireAuth, (req, res) => {
     });
 });
 
+// PDF Export route
+app.get('/accounts/:id/pdf', requireAuth, (req, res) => {
+    const accountId = req.params.id;
+    
+    db.get("SELECT * FROM accounts WHERE id = ?", [accountId], (err, account) => {
+        if (err || !account) {
+            return res.status(404).send('Konto nicht gefunden');
+        }
+        
+        // Get all transactions for this account
+        db.all(`
+            SELECT t.*, u.username as created_by_name, i.name as item_name
+            FROM transactions t
+            LEFT JOIN users u ON t.created_by = u.id
+            LEFT JOIN items i ON t.item_id = i.id
+            WHERE t.account_id = ?
+            ORDER BY t.created_at DESC
+        `, [accountId], (err, transactions) => {
+            if (err) {
+                console.error('Error fetching transactions for PDF:', err);
+                return res.status(500).send('Fehler beim Generieren des PDFs');
+            }
+            
+            // Create PDF document
+            const doc = new PDFDocument({ margin: 30 });
+            
+            // Set response headers for PDF download
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="Kontoauszug_${account.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf"`);
+            
+            // Pipe the PDF to the response
+            doc.pipe(res);
+            
+            // Add content to PDF
+            doc.fontSize(20).text(`Kontoauszug für ${account.name}`, { align: 'center' });
+            doc.moveDown();
+            
+            doc.fontSize(14).text(`Kontostand: ${account.balance.toFixed(2)} €`);
+            doc.fontSize(12).text(`Erstellt am: ${new Date(account.created_at).toLocaleDateString('de-DE')}`);
+            doc.moveDown(2);
+            
+            doc.fontSize(16).text('Transaktionshistorie:', { underline: true });
+            doc.moveDown();
+            
+            // Table headers
+            const table = {
+                headers: ['Datum', 'Typ', 'Betrag', 'Beschreibung', 'Artikel', 'Durchgeführt von'],
+                rows: []
+            };
+            
+            transactions.forEach(tx => {
+                table.rows.push([
+                    new Date(tx.created_at).toLocaleString('de-DE'),
+                    tx.type === 'deposit' ? 'Einzahlung' : 'Abbuchung',
+                    `${tx.amount.toFixed(2)} €`,
+                    tx.description || '-',
+                    tx.item_name || '-',
+                    tx.created_by_name || 'System'
+                ]);
+            });
+            
+            // Draw table
+            const tableTop = doc.y;
+            const columnSpacing = 10;
+            const columnWidths = [80, 60, 50, 120, 80, 80];
+            
+            // Draw headers
+            doc.font('Helvetica-Bold');
+            let x = 30;
+            table.headers.forEach((header, i) => {
+                doc.text(header, x, tableTop, { width: columnWidths[i], align: 'left' });
+                x += columnWidths[i] + columnSpacing;
+            });
+            doc.font('Helvetica');
+            
+            // Draw rows
+            let y = tableTop + 20;
+            transactions.forEach((tx, rowIndex) => {
+                x = 30;
+                const row = table.rows[rowIndex];
+                row.forEach((cell, i) => {
+                    doc.text(cell, x, y, { width: columnWidths[i], align: 'left' });
+                    x += columnWidths[i] + columnSpacing;
+                });
+                y += 20;
+                
+                // Add horizontal line between rows
+                if (rowIndex < transactions.length - 1) {
+                    doc.moveTo(30, y - 5).lineTo(550, y - 5).stroke('#cccccc');
+                }
+            });
+            
+            doc.moveDown(2);
+            doc.fontSize(10).text(`Generiert am: ${new Date().toLocaleString('de-DE')}`, { align: 'right' });
+            doc.fontSize(10).text(`Generiert von: ${req.user.username}`, { align: 'right' });
+            
+            // Finalize PDF
+            doc.end();
+        });
+    });
+});
+
 // Deposit routes
 app.get('/accounts/:id/deposit', requireAuth, (req, res) => {
     const accountId = req.params.id;
@@ -339,7 +454,7 @@ app.get('/accounts/:id/deposit', requireAuth, (req, res) => {
         if (err || !account) {
             return res.status(404).send('Konto nicht gefunden');
         }
-        res.render('deposit', { user: req.user, account });
+        res.render('deposit', { user: req.user, account: account, error: null });
     });
 });
 
@@ -388,8 +503,8 @@ app.get('/accounts/:id/withdraw', requireAuth, (req, res) => {
             
             res.render('withdraw', { 
                 user: req.user, 
-                account,
-                items,
+                account: account,
+                items: items,
                 error: req.query.error
             });
         });
@@ -480,12 +595,12 @@ app.get('/items', requireAuth, requireAdmin, (req, res) => {
             console.error('Error fetching items:', err);
             items = [];
         }
-        res.render('items', { user: req.user, items });
+        res.render('items', { user: req.user, items: items });
     });
 });
 
 app.get('/items/new', requireAuth, requireAdmin, (req, res) => {
-    res.render('item_new', { user: req.user });
+    res.render('item_new', { user: req.user, error: null, name: '', price: '', description: '' });
 });
 
 app.post('/items', requireAuth, requireAdmin, (req, res) => {
@@ -496,7 +611,8 @@ app.post('/items', requireAuth, requireAdmin, (req, res) => {
         return res.render('item_new', { 
             user: req.user, 
             error: 'Ungültiger Preis',
-            name, description
+            name: name,
+            description: description
         });
     }
     
@@ -507,7 +623,8 @@ app.post('/items', requireAuth, requireAdmin, (req, res) => {
                 return res.render('item_new', { 
                     user: req.user, 
                     error: 'Fehler beim Anlegen des Artikels',
-                    name, description
+                    name: name,
+                    description: description
                 });
             }
             res.redirect('/items');
@@ -521,7 +638,7 @@ app.get('/items/:id/edit', requireAuth, requireAdmin, (req, res) => {
         if (err || !item) {
             return res.status(404).send('Artikel nicht gefunden');
         }
-        res.render('item_edit', { user: req.user, item });
+        res.render('item_edit', { user: req.user, item: item, error: null });
     });
 });
 
@@ -563,12 +680,12 @@ app.get('/users', requireAuth, requireAdmin, (req, res) => {
             console.error('Error fetching users:', err);
             users = [];
         }
-        res.render('users', { user: req.user, users });
+        res.render('users', { user: req.user, users: users });
     });
 });
 
 app.get('/users/new', requireAuth, requireAdmin, (req, res) => {
-    res.render('user_new', { user: req.user });
+    res.render('user_new', { user: req.user, error: null, username: '', role: 'employee' });
 });
 
 app.post('/users', requireAuth, requireAdmin, (req, res) => {
@@ -582,7 +699,8 @@ app.post('/users', requireAuth, requireAdmin, (req, res) => {
                 return res.render('user_new', { 
                     user: req.user, 
                     error: 'Fehler beim Anlegen des Benutzers',
-                    username, role
+                    username: username,
+                    role: role
                 });
             }
             res.redirect('/users');
@@ -608,40 +726,43 @@ app.post('/users/:id/delete', requireAuth, requireAdmin, (req, res) => {
 
 // PIN check route for visitors
 app.get('/pin-check', (req, res) => {
-    res.render('pin_check', { error: null });
+    res.render('pin_check', { error: null, success: false, account: null, transactions: null, user: null });
 });
 
 app.post('/pin-check', (req, res) => {
     const { pin } = req.body;
     
-    db.get("SELECT * FROM accounts WHERE pin = ?", [pin], (err, account) => {
+    if (!pin) {
+        return res.render('pin_check', { error: 'Bitte geben Sie eine PIN ein', success: false, account: null, transactions: null, user: null });
+    }
+    
+    getAccountByPin(pin, (err, account) => {
         if (err || !account) {
-            // Try hashed PIN
-            db.all("SELECT * FROM accounts", (err, accounts) => {
-                if (err) {
-                    return res.render('pin_check', { error: 'Ungültige PIN' });
-                }
-                
-                const matchingAccount = accounts.find(acc => bcrypt.compareSync(pin, acc.pin));
-                if (!matchingAccount) {
-                    return res.render('pin_check', { error: 'Ungültige PIN' });
-                }
-                
-                // Show balance
-                res.render('pin_check', { 
-                    error: null, 
-                    account: matchingAccount,
-                    success: true
-                });
-            });
-            return;
+            return res.render('pin_check', { error: 'Ungültige PIN', success: false, account: null, transactions: null, user: null });
         }
         
-        // Show balance
-        res.render('pin_check', { 
-            error: null, 
-            account,
-            success: true
+        // Get last 10 transactions for this account
+        db.all(`
+            SELECT t.*, u.username as created_by_name, i.name as item_name
+            FROM transactions t
+            LEFT JOIN users u ON t.created_by = u.id
+            LEFT JOIN items i ON t.item_id = i.id
+            WHERE t.account_id = ?
+            ORDER BY t.created_at DESC
+            LIMIT 10
+        `, [account.id], (err, transactions) => {
+            if (err) {
+                console.error('Error fetching transactions for PIN check:', err);
+                transactions = [];
+            }
+            
+            res.render('pin_check', {
+                error: null,
+                success: true,
+                account: account,
+                transactions: transactions,
+                user: null
+            });
         });
     });
 });
@@ -654,20 +775,39 @@ app.post('/api/pin-check', (req, res) => {
         return res.json({ error: 'PIN ist erforderlich' });
     }
     
-    db.all("SELECT * FROM accounts", (err, accounts) => {
-        if (err) {
-            return res.json({ error: 'Datenbankfehler' });
-        }
-        
-        const matchingAccount = accounts.find(acc => bcrypt.compareSync(pin, acc.pin));
-        if (!matchingAccount) {
+    getAccountByPin(pin, (err, account) => {
+        if (err || !account) {
             return res.json({ error: 'Ungültige PIN' });
         }
         
-        res.json({
-            success: true,
-            name: matchingAccount.name,
-            balance: matchingAccount.balance
+        // Get last 10 transactions
+        db.all(`
+            SELECT t.*, u.username as created_by_name, i.name as item_name
+            FROM transactions t
+            LEFT JOIN users u ON t.created_by = u.id
+            LEFT JOIN items i ON t.item_id = i.id
+            WHERE t.account_id = ?
+            ORDER BY t.created_at DESC
+            LIMIT 10
+        `, [account.id], (err, transactions) => {
+            if (err) {
+                console.error('Error fetching transactions:', err);
+                transactions = [];
+            }
+            
+            res.json({
+                success: true,
+                name: account.name,
+                balance: account.balance,
+                transactions: transactions.map(tx => ({
+                    date: tx.created_at,
+                    type: tx.type,
+                    amount: tx.amount,
+                    description: tx.description,
+                    item: tx.item_name,
+                    by: tx.created_by_name
+                }))
+            });
         });
     });
 });
