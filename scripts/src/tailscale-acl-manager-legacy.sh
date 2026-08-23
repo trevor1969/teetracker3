@@ -64,20 +64,9 @@ show_devices() {
         return 1
     fi
 
-    # Versuchen, JSON-Ausgabe zu bekommen
-    local devices
-    devices=$(tailscale status --json 2>/dev/null || tailscale status)
-
-    if echo "$devices" | jq empty 2>/dev/null; then
-        # JSON-Verarbeitung
-        echo "$(printf '%s\n' "$devices" | jq -r '.Peer[] | "Hostname: \(.DNSName // .HostName) | IP: \(.TailscaleIPs[0]) | Status: \(if .Online then "Online" else "Offline" end) | Node: \(.NodeID[:8])"')"
-        echo ""
-        echo "$(printf '%s\n' "$devices" | jq -r '.Self | "Hostname: \(.DNSName // .HostName) | IP: \(.TailscaleIPs[0]) | Status: \(if .Online then "Online" else "Offline" end) | Node: \(.NodeID[:8]) | (SELBST)"')"
-    else
-        # Einfache Textausgabe
-        echo "$devices"
-    fi
-
+    # Einfache Textausgabe als Fallback
+    echo "Geräte im Tailscale-Netzwerk:"
+    tailscale status
     echo ""
 }
 
@@ -181,7 +170,7 @@ EOF
     echo -e "${GREEN}Standard-ACL-Datei erstellt: $ACL_FILE${NC}"
 }
 
-# Geraet blockieren (ACL-Datei bearbeiten)
+# Gerät blockieren (ACL-Datei bearbeiten)
 block_device() {
     local node_id="$1"
     local hostname="$2"
@@ -225,7 +214,7 @@ block_device() {
     echo ""
 }
 
-# Geraet entblockieren (ACL-Datei bearbeiten)
+# Gerät entblockieren (ACL-Datei bearbeiten)
 unblock_device() {
     local node_id="$1"
     local hostname="$2"
@@ -268,106 +257,35 @@ unblock_device() {
     echo ""
 }
 
-# Geraet auswaehlen
+# Gerät auswählen - vereinfachte Version ohne jq für Geräteliste
 select_device() {
     local action="$1"
 
     echo -e "\n${BLUE}Wähle ein Gerät zum ${action}en:${NC}\n"
-
-    # Geraete abrufen
-    local devices
-    devices=$(tailscale status --json 2>/dev/null || true)
-
-    if [[ -z "$devices" ]]; then
-        echo -e "${RED}Keine Geräte gefunden. Bitte stelle sicher, dass tailscale läuft.${NC}"
+    echo "Verfügbare Geräte:"
+    echo ""
+    
+    # Einfache Textausgabe von tailscale status
+    tailscale status
+    echo ""
+    
+    # Node-IDs aus der Status-Ausgabe extrahieren (einfacher Ansatz)
+    echo "Gib die vollständige Node-ID ein (z.B. node:node1234567890abcdef):"
+    read -p "Node-ID: " node_id
+    
+    if [[ -z "$node_id" ]]; then
+        echo -e "${RED}Keine Node-ID eingegeben.${NC}"
         return 1
     fi
-
-    # Geraete anzeigen
-    local count=0
-    local node_ids=()
-    local hostnames=()
-
-    while IFS= read -r line; do
-        local node_id
-        node_id=$(echo "$line" | jq -r '.NodeID' 2>/dev/null || true)
-        local hostname
-        hostname=$(echo "$line" | jq -r '.DNSName // .HostName' 2>/dev/null || true)
-        local ip
-        ip=$(echo "$line" | jq -r '.TailscaleIPs[0]' 2>/dev/null || true)
-        local online
-        online=$(echo "$line" | jq -r 'if .Online then "Online" else "Offline" end' 2>/dev/null || true)
-
-        if [[ -n "$node_id" ]]; then
-            echo "$((count+1)). $hostname | $ip | $online | Node: ${node_id:0:8}"
-            node_ids+=("$node_id")
-            hostnames+=("$hostname")
-            count=$((count + 1))
-        fi
-    done < <(printf '%s\n' "$devices" | jq -c '.Peer[]')
-
-    # Selbst hinzufuegen
-    local self_node
-    self_node=$(echo "$devices" | jq -r '.Self.NodeID' 2>/dev/null || true)
-    local self_hostname
-    self_hostname=$(echo "$devices" | jq -r '.Self.DNSName // .Self.HostName' 2>/dev/null || true)
-    local self_ip
-    self_ip=$(echo "$devices" | jq -r '.Self.TailscaleIPs[0]' 2>/dev/null || true)
-
-    if [[ -n "$self_node" ]]; then
-        echo "$((count+1)). $self_hostname | $self_ip | Online | Node: ${self_node:0:8} (SELBST)"
-        node_ids+=("$self_node")
-        hostnames+=("$self_hostname")
-        count=$((count + 1))
-    fi
-
-    if [[ $count -eq 0 ]]; then
-        echo -e "${RED}Keine Geräte zum Auswählen gefunden.${NC}"
-        return 1
-    fi
-
-    # Auswahl
-    read -p "Gib die Nummer (1-$count) oder Node-ID (erste 8 Zeichen) ein: " selection
-
-    if [[ -z "$selection" ]]; then
-        echo -e "${RED}Keine Auswahl getroffen.${NC}"
-        return 1
-    fi
-
-    local selected_node=""
-    local selected_hostname=""
-
-    # Pruefen ob Nummer eingegeben wurde
-    if [[ "$selection" =~ ^[0-9]+$ ]]; then
-        local index=$((selection - 1))
-        if [[ $index -ge 0 && $index -lt $count ]]; then
-            selected_node="${node_ids[$index]}"
-            selected_hostname="${hostnames[$index]}"
-        else
-            echo -e "${RED}Ungültige Nummer.${NC}"
-            return 1
-        fi
-    else
-        # Node-ID suchen
-        for i in "${!node_ids[@]}"; do
-            if [[ "${node_ids[$i]}" == *"$selection"* ]]; then
-                selected_node="${node_ids[$i]}"
-                selected_hostname="${hostnames[$i]}"
-                break
-            fi
-        done
-
-        if [[ -z "$selected_node" ]]; then
-            echo -e "${RED}Gerät nicht gefunden.${NC}"
-            return 1
-        fi
-    fi
-
-    # Aktion ausfuehren
+    
+    # Hostname abfragen
+    read -p "Hostname (optional, für Kommentar): " hostname
+    
+    # Aktion ausführen
     if [[ "$action" == "block" ]]; then
-        block_device "$selected_node" "$selected_hostname"
+        block_device "$node_id" "$hostname"
     else
-        unblock_device "$selected_node" "$selected_hostname"
+        unblock_device "$node_id" "$hostname"
     fi
 }
 
@@ -438,7 +356,7 @@ Wichtig für Tailscale < 1.60.0:
 
 Benötigte Tools:
   - Tailscale CLI (1.102.3 oder höher)
-  - jq (für JSON-Verarbeitung)
+  - jq (für JSON-Verarbeitung, optional für einige Funktionen)
   - Angemeldet bei Tailscale (tailscale up)
 
 Beispiel-ACL zum Blockieren eines Geräts:
@@ -528,7 +446,6 @@ main() {
 
     check_tailscale_installed
     check_tailscale_authenticated
-    check_jq_installed
 
     if [[ $# -gt 0 ]]; then
         case "$1" in
